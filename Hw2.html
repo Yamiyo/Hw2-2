@@ -1,0 +1,297 @@
+﻿﻿
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+	body {
+		background-color: #fff;
+		color: #111;
+		margin: 0px;
+		overflow: hidden;
+		font-family: Monospace;
+		font-size: 20px;
+		position: absolute;
+	}
+	#info {
+		position: absolute;
+		top: 0px; width: 100%;
+		
+		padding: 5px;
+		text-align: center;
+		color: #ffff00;
+	}
+	#angleInfo {
+		position: absolute;
+		bottom: 100px; width: 100%;
+		color: #ffffff;
+		text-align: center;
+	}
+	strong {color: red}
+</style>
+</head>
+
+<body>
+<div id="container"></div>
+<div id="info">
+     HW2 <br/>
+	 type <strong>z</strong> to Open the door<br/>
+						    and Close the door
+</div>
+<div id="angleInfo"> </div>
+<audio id="sound" style="display:none">
+<source src="music/door.wav" type='audio/mp3'>
+<script src="js/three.min.js"></script>
+<script src="js/OrbitControls.js"></script>
+<script src="js/KeyboardState.js"></script>
+
+<script>
+// JUST A MATTER OF MrDoob's STYLE (see ppt)
+///////////////////////////////////////////////////////
+// I. GLOBAL VARS
+var clock = new THREE.Clock();
+var scene, renderer, camera;
+var controls, keyboard = new KeyboardState();
+var angle = 0, angle2 = 0;
+var turn = 2, doorturn=0;
+
+var angleInfoEle;
+
+/////////////////////////////////////////////////////
+// II. Execution order
+init();
+animate();
+
+//////////////////////////////////////////////////////
+// III. functions
+function init()
+{
+	var width = window.innerWidth;
+	var height = window.innerHeight;
+	
+	debugger;
+	var container = document.getElementById ( 'container' );
+	
+	angleInfoEle = window.document.getElementById ('angleInfo');
+	
+	renderer = new THREE.WebGLRenderer({antialias: true});
+	renderer.setSize (width, height);
+	container.appendChild (renderer.domElement);
+	
+	scene = new THREE.Scene();
+	
+	var doorframeTexture = THREE.ImageUtils.loadTexture("images/doorframe.jpg");
+	var doorknobTexture = THREE.ImageUtils.loadTexture("images/doorknob.jpg");
+
+	var floorTexture = THREE.ImageUtils.loadTexture("images/floor.jpeg");
+
+	var doorframeGeometry = new THREE.BoxGeometry (47,3,3);		//底
+	var doorframeMaterial = new THREE.MeshLambertMaterial ({map : doorframeTexture});
+	doorframe = new THREE.Mesh (doorframeGeometry, doorframeMaterial);
+
+	doorframe.position.set (50, 1.5, 0);
+	scene.add (doorframe);
+	
+	var doorframeGeometry2 = new THREE.BoxGeometry (47,3,3);		//頂
+	var doorframeMaterial2 = new THREE.MeshLambertMaterial ({map : doorframeTexture});
+	doorframe2 = new THREE.Mesh (doorframeGeometry2, doorframeMaterial2);
+
+	doorframe2.position.set (50, 98.5, 0);
+	scene.add (doorframe2);
+	
+	var doorframeGeometry3 = new THREE.BoxGeometry (3,100,3);	//左
+	var doorframeMaterial3 = new THREE.MeshLambertMaterial ({map : doorframeTexture});
+	doorframe3 = new THREE.Mesh (doorframeGeometry3, doorframeMaterial3);
+
+	doorframe3.position.set (25, 50, 0);
+	scene.add (doorframe3);
+	
+	var doorframeGeometry4 = new THREE.BoxGeometry (3,100,3);	//右
+	var doorframeMaterial4 = new THREE.MeshLambertMaterial ({map : doorframeTexture});
+	doorframe4 = new THREE.Mesh (doorframeGeometry4, doorframeMaterial4);
+
+	doorframe4.position.set (75, 50, 0);
+	scene.add (doorframe4);
+	
+	var doorshaftGeometry = new THREE.CylinderGeometry (0.5,0.5,5,20,20);	//門軸上
+	var doorshaftMaterial = new THREE.MeshLambertMaterial ({map : doorknobTexture});
+	doorshaft = new THREE.Mesh (doorshaftGeometry, doorshaftMaterial);
+	doorshaft.position.set (73.5, 75, 1.5);
+
+
+	doorshaft2 = new THREE.Mesh (doorshaftGeometry, doorshaftMaterial);		//門軸下
+	doorshaft2.position.set(73.5, 25, 1.5);
+
+	
+	var doorGeometry = new THREE.BoxGeometry (46.7,93.7,3);		//門
+	var doorMaterial = new THREE.MeshPhongMaterial ();
+	
+		doorMaterial.map = THREE.ImageUtils.loadTexture("images/door.jpg");
+		doorMaterial.bumpMap = THREE.ImageUtils.loadTexture("images/door_NRM.png");
+		doorMaterial.bumpScale = 0.5;
+	
+	door = new THREE.Mesh (doorGeometry, doorMaterial);
+
+	door.position.set (-23.5, -25, -1.5);
+	doorshaft.add (door);
+	scene.add (doorshaft);
+	scene.add (doorshaft2);
+
+	var knobGeometry = new THREE.BoxGeometry (3,2,0.5);		//門鎖
+	var knobMaterial = new THREE.MeshLambertMaterial ({map : doorknobTexture});
+	knob = new THREE.Mesh (knobGeometry, knobMaterial);
+	knob.position.set (-23, 0, 0);
+	door.add (knob);
+	
+	var axisGeometry = new THREE.CylinderGeometry (1,1,5.5,20,20);	//門把棍
+	var axisMaterial = new THREE.MeshLambertMaterial ({map : doorknobTexture});
+	axis = new THREE.Mesh (axisGeometry, axisMaterial);
+	axis.rotation.order = 'XYZ';
+	axis.rotation.x = (Math.PI/2);
+	axis.position.set (-22, 0, 0);
+	door.add (axis);
+	
+	var doorknobGeometry = new THREE.BoxGeometry (10,2,0.5);		//門把
+	var doorknobMaterial = new THREE.MeshLambertMaterial ({map : doorknobTexture});
+	doorknob = new THREE.Mesh (doorknobGeometry, doorknobMaterial);
+	doorknob2 = new THREE.Mesh (doorknobGeometry, doorknobMaterial);
+	doorknob.rotation.order = 'XYZ';
+	doorknob.rotation.x = -(Math.PI/2);
+	doorknob.position.set (4, 2.5, 0);
+	doorknob2.rotation.order = 'XYZ';
+	doorknob2.rotation.x = -(Math.PI/2);
+	doorknob2.position.set (4, -2.5, 0);
+	axis.add (doorknob);
+	axis.add (doorknob2);
+	
+	camera = new THREE.PerspectiveCamera (45, width/height, 0.1, 10000000);
+	camera.position.y = 160;
+	camera.position.z = 400;
+	camera.lookAt (new THREE.Vector3(0,0,0));
+	//scene.add (camera);  // in fact, no need to add camera to scene
+
+	// add control here (after the camera is defined)
+
+
+	var floorMaterial = new THREE.MeshBasicMaterial( { map: floorTexture, side: THREE.DoubleSide } );
+	
+	var floorGeometry = new THREE.PlaneGeometry(500, 500);//, 10, 10);  // not clear what segment does
+	var floor = new THREE.Mesh(floorGeometry, floorMaterial);
+	floor.position.y = -0.5;
+	floor.rotation.x = Math.PI / 2;
+	scene.add(floor);
+
+	var pointLight = new THREE.PointLight (0xffffff);
+	pointLight.position.set (0,300,200);
+	scene.add (pointLight);
+	
+	var pointLight2 = new THREE.PointLight (0xffffff);
+	pointLight2.position.set (200,300,-200);
+	scene.add (pointLight2);
+	
+	control = new THREE.OrbitControls(camera, renderer.domElement);
+    document.body.appendChild(renderer.domElement);
+	window.addEventListener ('resize', onWindowResize, false);
+}
+
+function onWindowResize()
+{
+	camera.aspect = window.innerWidth / window.innerHeight;
+	camera.updateProjectionMatrix();
+	renderer.setSize (window.innerWidth, window.innerHeight);
+}
+
+function toggleTurn ()
+{
+	turn = !turn;
+}
+
+function animate()
+{
+	var dt = clock.getDelta();
+	
+	if(doorturn==1)
+	{
+		if(turn==0&&angle2>0)
+		turn=1;
+		else if(turn==0&&(angle<=Math.PI/6))
+		{	
+			angle += 0.01;
+			axis.rotation.y = -angle;
+			knob.position.set (-23+angle*3, 0, 0);
+			if((angle>=Math.PI/6)&&angle2<=0)
+			{
+				turn=1;
+				sound.play();
+			}
+		}
+		
+		if(turn==1&&(angle>0&&angle2<=Math.PI/6))
+		{	
+			angle -= 0.01;
+			angle2 += 0.01;
+			axis.rotation.y = -angle;
+			knob.position.set (-23+angle*3, 0, 0);
+			doorshaft.rotation.y = angle2*3;
+			if(angle<=0)
+				turn=2;
+		}
+
+	}
+	
+	if(doorturn==0)
+	{
+		if(turn==0&&(angle2>=0))
+		{	
+			angle += 0.01;
+			angle2 -= 0.01;
+			axis.rotation.y = -angle;
+			knob.position.set (-23+angle*3, 0, 0);
+			doorshaft.rotation.y = angle2*3;
+			if(angle2<=0)
+			{
+				turn=1;
+				sound.play();
+			}
+		}
+		
+		if(turn==1&&(angle>0))
+		{	
+			angle -= 0.01;
+			axis.rotation.y = -angle;
+			knob.position.set (-23+angle*3, 0, 0);
+			if(angle<=0)
+				turn=2;
+		}
+		
+	}
+	
+	
+	requestAnimationFrame ( animate );  // timer callback
+	render();  // display callback
+	update();
+}
+
+function update()
+{
+	keyboard.update();
+	control.update();
+	
+	if ( keyboard.down("Z"))  
+	{	
+		doorturn = (doorturn+1)%2;
+		turn=0;
+		
+	}
+}
+
+
+function render()
+{
+	renderer.render (scene, camera);
+}
+
+
+</script>
+</body>
+
+</html>
